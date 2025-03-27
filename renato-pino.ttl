@@ -7,12 +7,12 @@
 
     
 
-    <http://renato-pino.com/#renato> a foaf:Person ;
+    <http://renato-pino.cl/#renato> a foaf:Person ;
         foaf:name "Renato Pino" ;
         foaf:mail <mailto:renatopinoh@gmail.com> ;
         foaf:homepage <https://github.com/Renato-98> ;
-        foaf:image <https://avatars.githubusercontent.com/u/57800094?v=4> ;
-        foaf:knows <http://carolina-nunez.cl/>, <http://hecmar-taucare.cl/>.
+        foaf:image <https://github.com/Renato-98/Renato-98/raw/main/graph.jpg> ;
+        foaf:knows <http://caronunez.cl/>, <https://www.example.com/frpezzolla>.
 
     <http://renato-pino.cl/studys/estudiante> a rdf:Class ;
         rdfs:subClassOf foaf:Person.
