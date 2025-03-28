@@ -1,0 +1,61 @@
+    @prefix : <http://renato-pino.cl/#>.
+    @prefix foaf: <http://xmlns.com/foaf/0.1/>.
+    @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+    @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+    @prefix owl: <http://www.w3.org/2002/07/owl#>.
+    @prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+
+    @prefix hotd: <http://renato-pino.cl/hotd/>.
+
+    #P1
+    :hasSpouse a owl:symetricProperty ;
+        rdfs:subPropertyOf rdf:Property.
+
+    :engagedTo a owl:symetricProperty ;
+        rdfs:subPropertyOf rdf:Property.
+
+    #P2
+    :hasParent a owl:inverseOf: :hasChild ;
+        rdfs:subPropertyOf rdf:Property.
+    :hasChild a owl:inverseOf: :hasParent ;
+        rdfs:subPropertyOf rdf:Property.
+
+    #P3
+    :AncestorOf a rdf:Property ;
+        rdfs:subPropertyOf rdf:Property;
+        rdfs:domain :Person;
+        rdfs:range :Person.
+
+    :AncestorOf a owl:TransitivePropertyOf ;
+        rdfs:subPropertyOf rdf:Property.
+
+    #P4
+    :hasSibling a rdf:Property ;
+        rdfs:subPropertyOf rdf:Property;
+        rdfs:domain :Person;
+        rdfs:range :Person.
+    :hasSibling a owl:symetricProperty;
+        rdfs:subPropertyOf rdf:Property.
+
+    :hasCousin owl:propertychain: :hasParent, :hasSibling, :hasChild ;
+        rdfs:subPropertyOf rdf:Property.  
+
+    #P5
+    :Targaryen a owl:equivalentClass [owl:hasValue :"Targaryen"; owl:onProperty :memberOf] ;
+        rdfs:subClassOf :House.  
+    #P6
+    :Valyrion a owl:subClassOf[owl:UnionOf( :HouseTargaryen, :HouseVelarion, :HouseCeltigar)];
+        rdfs:subClassOf :House.
+
+    #P7
+    :Andal owl:complementOf :Valyrian;
+        rdfs:subClassOf :House.
+
+    #P8
+    :OnlyMarriesValyrian a owl:subClassOf[owl:allValueFrom :Valyrian; owl:onProperty :hasSpouse].
+    
+
+            
+
+
+
