@@ -1,0 +1,32 @@
+    @base <http://renato-pino.cl/#>.
+    @prefix foaf: <http://xmlns.com/foaf/0.1/>.
+    @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+    @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+    @prefix wd: <http://www.wikidata.org/entity/> .
+    @prefix st: <http://renato-pino.cl/studys#> .
+
+    
+
+    <http://renato-pino.cl/#renato> a foaf:Person ;
+        foaf:name "Renato Pino" ;
+        foaf:mail <mailto:renatopinoh@gmail.com> ;
+        foaf:homepage <https://github.com/Renato-98> ;
+        foaf:image <https://github.com/Renato-98/Renato-98/raw/main/graph.jpg> ;
+        foaf:knows <http://caronunez.cl/>, <https://www.example.com/frpezzolla>.
+
+    <http://renato-pino.cl/studys/estudiante> a rdf:Class ;
+        rdfs:subClassOf foaf:Person.
+
+    <http://renato-pino.cl/studys/#estudiaEn> a rdf:Property ;
+        rdfs:domain st:Estudiante;
+        rdfs:range foaf:university.
+
+    <yo> a st:estudiante;
+        st:estudiaEn  wd:Q232141.
+
+
+
+    
+
+
+
