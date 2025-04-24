@@ -1,0 +1,137 @@
+# P1. Q‑code de las entidades con etiqueta “Universidad de Chile”
+SELECT DISTINCT ?universidad WHERE {
+  ?universidad rdfs:label "Universidad de Chile"@es.
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }
+}
+# Entre los 3 resultados,  el que corresponde a la universidad es Q232141
+
+# P2. Cadena de clases (P31→P279*) de la Universidad de Chile
+SELECT DISTINCT ?clase ?claseLabel WHERE {
+  wd:Q232141 wdt:P31/wdt:P279* ?clase. # usamos el Q-code encontrado el P1
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }
+}
+
+#P3. Universidades de América del Sur fundadas antes que la Universidad de Chile
+SELECT DISTINCT
+  ?uni
+  ?uniLabel
+  (YEAR(?f) AS ?anioFundacion)
+WHERE {
+  ## Fecha de fundación de la UChile
+  wd:Q232141 wdt:P571 ?uchInception.
+
+  ## Universidades en Sudamérica con P571 (inception)
+  ?uni wdt:P31/wdt:P279* wd:Q3918;
+       wdt:P571 ?f;           # fecha de fundación de la uni
+       wdt:P17 ?pais.         # país de la uni
+
+  ## Filtrar solo Sudamérica
+  ?pais wdt:P30 wd:Q18.
+
+  ## Que hayan sido fundadas antes que la UChile
+  FILTER( YEAR(?f) < YEAR(?uchInception) ).
+
+  ## Etiquetas en español (y fallback a inglés)
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }
+}
+ORDER BY ?anioFundacion
+
+# P4. Personas que estudiaron en UChile y en otra universidad chilena
+SELECT DISTINCT ?persona ?personaLabel ?otraU ?otraULabel WHERE {
+  # Persona con dos estudios en universidades
+  ?persona wdt:P69 wd:Q232141;        # estudió en UChile
+           wdt:P69 ?otraU.           # estudió también en otraU
+  FILTER(?otraU != wd:Q232141).
+  # Asegurar que otraU sea universidad en Chile
+  ?otraU wdt:P31/wdt:P279* wd:Q3918;
+           wdt:P17 wd:Q298.
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }
+}
+
+# P5. Conteo de ex‑alumnos de UChile por ocupación
+SELECT ?ocupacion ?ocupacionLabel (COUNT(DISTINCT ?persona) AS ?cantidad) WHERE {
+  ?persona wdt:P69 wd:Q232141.
+  ?persona wdt:P106 ?ocupacion.
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }
+}
+GROUP BY ?ocupacion ?ocupacionLabel
+ORDER BY DESC(?cantidad)
+
+# P6. Personas que estudiaron o trabajaron en UChile, con tipo (trabajador o estudiante)
+SELECT DISTINCT ?persona ?personaLabel ?tipo WHERE {
+  {
+    ?persona wdt:P69 wd:Q232141.
+    BIND("estudiante" AS ?tipo)
+  }
+  UNION
+  {
+    ?persona wdt:P108 wd:Q232141.
+    BIND("trabajador" AS ?tipo)
+  }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }
+}
+
+# P7. Extensión: añadir fecha y país de nacimiento (si existen)
+SELECT DISTINCT ?persona ?personaLabel ?tipo 
+                ?fechaNacimiento ?paisNacLabel WHERE {
+  {
+    ?persona wdt:P69 wd:Q232141.
+    BIND("estudiante" AS ?tipo)
+  }
+  UNION
+  {
+    ?persona wdt:P108 wd:Q232141.
+    BIND("trabajador" AS ?tipo)
+  }
+  OPTIONAL { ?persona wdt:P569 ?fechaNacimiento. }
+  OPTIONAL {
+    ?persona wdt:P19 ?lieuNac.
+    ?lieuNac wdt:P17 ?paisNac.
+  }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }
+}
+
+# P8. Ex‑alumnos vivos con edad > promedio de vivos
+
+SELECT DISTINCT
+  ?persona
+  ?personaLabel
+  (YEAR(NOW()) - YEAR(?bd) AS ?edad)
+WHERE {
+  # Subconsulta: edad promedio de ex-alumnos vivos
+  {
+    SELECT (AVG(?age) AS ?edadProm) WHERE {
+      ?p wdt:P69 wd:Q232141;    # ex-alumno de la UChile
+         wdt:P569 ?bd.          # fecha de nacimiento (cualquiera)
+      FILTER NOT EXISTS { ?p wdt:P570 ?dd. }  # sigue vivo
+      BIND(YEAR(NOW()) - YEAR(?bd) AS ?age)
+    }
+  }
+
+  # Patrón principal: ex-alumnos vivos con fecha de nacimiento
+  ?persona wdt:P69 wd:Q232141;
+           wdt:P569 ?bd.
+  FILTER NOT EXISTS { ?persona wdt:P570 ?dd. }
+
+  # Calcular edad y aplicar filtros
+  BIND(YEAR(NOW()) - YEAR(?bd) AS ?edad)
+  FILTER(?edad > ?edadProm)      # solo mayores que el promedio
+  FILTER(?edad <= 105)           # eliminar casos con edad >105 años
+
+  # Etiquetas en español (fallback a inglés)
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }
+}
+ORDER BY DESC(?edad)
+
+# Para esta consulta tube vbarias complicaciones ya que muchas entidades en wikidata correspondiente a 
+# personas no tiene una precicion decente en sus fecha de nacimiento (mucha gente nacida den el siglo 20)
+# y varios no tiene fechas de falecimiento (P570). 
+# Por tanto, lo que hice para que el promedio no se vea distorsionado por edades claramente erroneas, 
+# fue  aplicar un filtro de plausibilidad (edades ≤ 105 años la vista manual de los primeros resultados de 
+# la consulta original). Luego de esto se calcula el primedio y se filtra nuevamente los casos mayores 105. 
+# Esto lo hive con ayuda de chat-GPT claro jeje.  
+
+
+
+
+

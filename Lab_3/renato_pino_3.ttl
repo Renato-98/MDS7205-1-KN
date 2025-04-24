@@ -1,0 +1,194 @@
+@prefix ex: <http://example.org#> .
+@prefix dash: <http://datashapes.org/dash#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix foaf:  <http://xmlns.com/foaf/0.1/> .
+
+#P1
+ex:PersonShape a sh:NodeShape ;
+    sh:targetClass foaf:Person ;
+    sh:property [
+       sh:path foaf:birthday ;
+       sh:datatype xsd:date ;  # Cambiado de xsd:string a xsd:date
+    ] .
+
+#P2
+##Data
+laureate:935
+    a                foaf:Person ;
+    foaf:birthday    "1948-10-09"^^xsd:date ;
+    foaf:familyName  "Hart"^^xsd:string ;
+    foaf:givenName   "Oliver"^^xsd:string  ;
+    foaf:name        "Oliver Hart" ;
+    foaf:gender      "male" .
+##Shapes 
+ex:PersonShape a sh:NodeShape ;
+    sh:targetClass foaf:Person ;
+    sh:property [
+        sh:path foaf:birthday ;
+        sh:datatype xsd:date ;
+    ] ;
+    sh:property [
+        sh:path foaf:givenName ;
+        sh:datatype xsd:string ;
+    ] ;
+    sh:property [
+        sh:path foaf:familyName ;
+        sh:datatype xsd:string ;
+    ] ;
+    sh:property [
+        sh:path foaf:name ;
+        sh:datatype xsd:string ;
+    ] .
+
+#P3
+# NO parece ser sufuiciente  sh:alternativePath. Obtengo un error porque sh:alternativePath valida 
+# que al menos una de las rutas cumpla la restricción (sh:datatype xsd:string), pero no garantiza 
+# que todas las propiedades existentes cumplan con ella.
+ex:PersonShape a sh:NodeShape ;
+    sh:targetClass foaf:Person ;
+    sh:property [
+        sh:path foaf:birthday ;
+        sh:datatype xsd:date ;
+    ] ;
+    sh:property [
+        sh:alternativePath ( foaf:givenName foaf:name foaf:familyName ) ;
+        sh:datatype xsd:string ;
+    ] .
+#P4  
+ex:LaureateShape a sh:NodeShape ;
+    sh:targetClass nobel:Laureate ;
+    sh:property [
+        sh:path dbo:affiliation ;
+        sh:class dbo:University ;  # Valida que el valor sea una instancia de dbo:University
+        sh:minCount 1 ;            # Requiere al menos una afiliación
+    ] .
+
+ #P5
+
+ex:LaureateShape a sh:NodeShape ;
+    sh:targetClass nobel:Laureate ;
+    sh:property [
+        sh:path dbo:affiliation ;
+        sh:qualifiedValueShape [
+            sh:class dbo:University ;  # Solo aplica a las afiliaciones que son universidades
+        ] ;
+        sh:qualifiedMinCount 1 ;       # Requiere al menos 1 afiliación que sea universidad
+    ] .
+
+#P6
+# Añadir @prefix dbp:   <http://dbpedia.org/property/> .
+ex:LaureateShape a sh:NodeShape ;
+    sh:targetClass nobel:Laureate;
+	sh:propety [
+      sh:path dbo:affiliation ;
+      sh:minCount 1;
+      sh:qualifiedValueShape [
+      		sh:path ex:affiliation;
+      		sh:hasValue ex:university
+      ];
+      sh:qualifiedMinCount 1;
+    ];
+	sh:propety[
+      sh:path dbp:dateOfBirth ;
+      sh:equalThanThan dpb:dateOfDeath
+    ].
+ #¿Esto se valida bien si alguna de las dos propiedades no este definida?
+ # Como vimos, aparentemente con equalThan da el verificador nos dice que esta todo bien, pero esto no 
+ #tiene sentido.
+   
+#P7 Not correct, do later
+ex:LaureateShape a sh:NodeShape ;
+    sh:targetClass nobel:Laureate;
+	sh:propety [
+      sh:path dbo:affiliation ;
+      sh:minCount 1;
+      sh:qualifiedValueShape [
+      		sh:path ex:affiliation;
+      		sh:hasValue ex:university
+      ];
+      sh:qualifiedMinCount 1;
+    ];
+    sh:property [
+        sh:or (
+            # Caso 1: Ambas propiedades existen y son iguales (usando sh:equals)
+            [
+                sh:and (
+                    [ sh:path dbp:dateOfBirth ; sh:minCount 1 ]
+                    [ sh:path foaf:birthday ; sh:minCount 1 ]
+                    [ sh:path dbp:dateOfBirth ; sh:equals foaf:birthday ]
+                )
+            ]
+            # Caso 2: Solo dbp:dateOfBirth existe
+            [
+                sh:and (
+                    [ sh:path dbp:dateOfBirth ; sh:minCount 1 ]
+                    [ sh:path foaf:birthday ; sh:maxCount 0 ]
+                )
+            ]
+            # Caso 3: Solo foaf:birthday existe
+            [
+                sh:and (
+                    [ sh:path foaf:birthday ; sh:minCount 1 ]
+                    [ sh:path dbp:dateOfBirth ; sh:maxCount 0 ]
+                )
+            ]
+        ) ;
+    ] .
+
+#P8 
+# laureate:917 Satoshi no cumple con la restricción de nombre.
+# No use alternativePath porque se especidfica que 'Ningun nombre deberia...' por lo que 
+# las restricciones son para cada propiedad por separado.
+ex:Laureate a sh:NodeShape ;
+    sh:targetClass foaf:Person ;
+    # Restricción para foaf:name
+    sh:property [
+        sh:path foaf:name ;
+        sh:datatype xsd:string ;  # Asegramos que el valor sea string
+        sh:pattern "^[^\\d_]{2,}$" ;
+        sh:message "El nombre completo no debe contener números ni guiones bajos." ;
+    ] ;
+    # Restricción para foaf:givenName
+    sh:property [
+        sh:path foaf:givenName ;
+        sh:datatype xsd:string ;
+        sh:pattern "^[^\\d_]{2,}$" ;
+        sh:message "El nombre de pila no debe contener números ni guiones bajos." ;
+    ] ;
+    # Restricción para foaf:familyName
+    sh:property [
+        sh:path foaf:familyName ;
+        sh:datatype xsd:string ;
+        sh:pattern "^[^\\d_]{2,}$" ;
+        sh:message "El apellido no debe contener números ni guiones bajos." ;
+    ] .
+#P9
+nobel:Laureate a sh:NodeShape ;
+    sh:property [
+       sh:path [
+           sh:alternativePath ( foaf:birthday dbp:dateOfBirth );
+       ] ;
+       sh:datatype xsd:date
+    ];
+    sh:property [
+        sh:path ( foaf:name foaf:givenName foaf:familyName ) ;
+        sh:pattern "^[^\\d_]{2,}$" ;  # Escapar la barra invertida en Turtle
+        sh:message "El nombre no debe contener números ni guiones bajos y debe tener al menos 2 caracteres." ;
+    ];
+    sh:property [
+        sh:path nobel:share ;
+        sh:in ( "1" "2" "3" "4" ) ;  # Valores permitidos como strings
+        sh:message "nobel:share debe ser '1', '2', '3' o '4'." ;
+    ] .    
+
+#P10
+ ex:LaureatePrizeShape a sh:NodeShape ;
+    sh:targetClass nobel:NobelPrize ;
+    sh:property [
+        sh:path nobel:motivation ;
+        sh:datatype xsd:string ;  # Asegramos que el valor sea string
+        sh:minLength 10 ;              # Al menos 10 caracteres
+        sh:uniqueLang true ;           # Máximo una por idioma
+        sh:message "La motivación debe tener al menos 10 caracteres y ser única por idioma." ;
+    ] .   

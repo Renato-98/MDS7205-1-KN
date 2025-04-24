@@ -69,8 +69,8 @@
 :LucerysVelaryon :engagedTo :RhaenaTargaryen .
 
 # Parent-Child
-:BaelaTargaryen :hasChild: ViserysTargaryen .
-:BaelaTargaryen :hasChild: DaemonTargaryen .
+:BaelorTargaryen :hasChild :ViserysTargaryen .
+:BaelorTargaryen :hasChild :DaemonTargaryen .
 
 :ViserysTargaryen :hasChild :RhaenyraTargaryen .
 :ViserysTargaryen :hasChild :AegonTargaryen .
@@ -82,3 +82,7 @@
 :RhaenyraTargaryen :hasChild :LucerysVelaryon .
 :DaemonTargaryen :hasChild :BaelaTargaryen .
 :DaemonTargaryen :hasChild :RhaenaTargaryen .
+
+:TestPerson a :Andal ;
+    foaf:name "Test Person" ;
+    :hasSpouse :TestSpouse .

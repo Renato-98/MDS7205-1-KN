@@ -1,58 +1,75 @@
-    @prefix : <http://renato-pino.cl/#>.
-    @prefix foaf: <http://xmlns.com/foaf/0.1/>.
-    @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-    @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-    @prefix owl: <http://www.w3.org/2002/07/owl#>.
-    @prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-    @prefix hotd: <http://renato-pino.cl/hotd/>.
+#P1
+:hasSpouse a owl:SymmetricProperty .
+:engagedTo a owl:SymmetricProperty .
 
-    #P1
-    :hasSpouse a owl:symetricProperty ;
-        rdfs:subPropertyOf rdf:Property.
+#P2
+:hasChild a owl:ObjectProperty .
+:hasParent a owl:ObjectProperty ;
+      owl:inverseOf :hasChild .
 
-    :engagedTo a owl:symetricProperty ;
-        rdfs:subPropertyOf rdf:Property.
+#P3
+:AncestorOf a owl:TransitiveProperty ;
+    owl:propertyChainAxiom (:hasChild) .
 
-    #P2
-    :hasParent a owl:inverseOf: :hasChild ;
-        rdfs:subPropertyOf rdf:Property.
-    :hasChild a owl:inverseOf: :hasParent ;
-        rdfs:subPropertyOf rdf:Property.
+#P4
+:hasSibling a owl:SymmetricProperty, owl:IrreflexiveProperty ; # No parece funcionar owl:IrreflexiveProperty
+    owl:propertyChainAxiom ( :hasParent :hasChild ) . # Paso 1: Subir al padre, Paso 2: Bajar al hijo (hermano)
 
-    #P3
-    :AncestorOf a rdf:Property ;
-        rdfs:subPropertyOf rdf:Property;
-        rdfs:domain :Person;
-        rdfs:range :Person.
 
-    :AncestorOf a owl:TransitivePropertyOf ;
-        rdfs:subPropertyOf rdf:Property.
+:hasCousin a owl:SymmetricProperty, owl:IrreflexiveProperty ;
+    owl:propertyChainAxiom ( :hasParent     # Paso 1: Subir al padre
+                             :hasSibling    # Paso 2: Ir al tío (hermano del padre)
+                             :hasChild      # Paso 3: Bajar al hijo del tío (primo)
+                           ) .
+# Obtengo siempre err:error "Irreflexive property used on..." al intentar usar owl:IrreflexiveProperty en :hasSibling y :hasCousin.
+:hasSibling owl:propertyDisjointWith owl:sameAs .
+:hasCousin owl:propertyDisjointWith owl:sameAs .
+# P5: Targaryen (miembros de HouseTargaryen)
+:Targaryen owl:equivalentClass [
+    owl:hasValue :HouseTargaryen ;
+    owl:onProperty :memberOf
+] .
 
-    #P4
-    :hasSibling a rdf:Property ;
-        rdfs:subPropertyOf rdf:Property;
-        rdfs:domain :Person;
-        rdfs:range :Person.
-    :hasSibling a owl:symetricProperty;
-        rdfs:subPropertyOf rdf:Property.
+# P6: Valyrian (unión de casas)
+:Valyrian owl:equivalentClass [
+    owl:unionOf ( [owl:hasValue :HouseTargaryen ; owl:onProperty :memberOf]
+                  [owl:hasValue :HouseVelaryon ; owl:onProperty :memberOf]
+                  [owl:hasValue :HouseCeltigar ; owl:onProperty :memberOf] )
+] .
 
-    :hasCousin owl:propertychain: :hasParent, :hasSibling, :hasChild ;
-        rdfs:subPropertyOf rdf:Property.  
+#P7: Andal (miembros no Valyrian)
 
-    #P5
-    :Targaryen a owl:equivalentClass [owl:hasValue :"Targaryen"; owl:onProperty :memberOf] ;
-        rdfs:subClassOf :House.  
-    #P6
-    :Valyrion a owl:subClassOf[owl:UnionOf( :HouseTargaryen, :HouseVelarion, :HouseCeltigar)];
-        rdfs:subClassOf :House.
+#Primer intento: No funciona 
+#:Andal owl:equivalentClass [
+#    owl:complementOf :Valyrian
+#] .
 
-    #P7
-    :Andal owl:complementOf :Valyrian;
-        rdfs:subClassOf :House.
+# Segundo intento: Esperaria que funcione, al ser simil a la clase anterior... pero no lo hace
+#:Andal owl:equivalentClass [
+#    owl:complementOf [
+#        owl:unionOf ( 
+#            [owl:hasValue :HouseTargaryen ; owl:onProperty :memberOf]
+#            [owl:hasValue :HouseVelaryon ; owl:onProperty :memberOf]
+#            [owl:hasValue :HouseCeltigar ; owl:onProperty :memberOf]
+#        )
+#    ]
+#] .
 
-    #P8
-    :OnlyMarriesValyrian a owl:subClassOf[owl:allValueFrom :Valyrian; owl:onProperty :hasSpouse].
+#Tercer intento: Funciona para el caso parcial, pero no aplica al general, en caso de que se agreguen nuevas casas (Mundo abierto)
+:Andal owl:equivalentClass [
+    owl:hasValue :HouseHightower ;
+    owl:onProperty :memberOf
+] .
+#P8: Class of all persons with Valyrian spouse
+:OnlyMarriesValyrians owl:equivalentClass [
+    owl:someValuesFrom :Valyrian ;
+    owl:onProperty :hasSpouse 
+] . 
     
 
             
