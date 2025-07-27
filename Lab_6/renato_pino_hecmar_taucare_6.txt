@@ -1,0 +1,192 @@
+Laboratorio_6
+
+#1.a. IRIs de todos los castillos 
+
+PREFIX v: <http://example.org/vocab#>
+
+SELECT DISTINCT ?castillo
+WHERE {
+  ?castillo a v:Castle .
+}
+
+#1.b. los nombres distintos de los castillos. 
+PREFIX v:    <http://example.org/vocab#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT DISTINCT ?castilloName
+WHERE {
+  ?c a v:Castle ;
+     foaf:name ?castilloName .
+}
+
+# Si son el mismo numero de outputs a pesar de devolver el 
+# nombre "Dragonstone" multiples veces, no estoy seguro de porque pasa esto... es posible que tenga caracteres (no perceptibles por mi)
+# diferentes. De todas maneras, forzando todos los nombres a minusculas funciona (aunque yo veo que en las 3 base de datos "Dragonstone" esta escrito igual)
+#1.b.lcase
+PREFIX v:    <http://example.org/vocab#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT DISTINCT 
+       (LCASE(STR(?castilloName)) AS ?textoMin) # Al forzar todo a minuscula la query devuelve los 11 nombres de castillos unicos.
+WHERE {
+  ?c a v:Castle ;
+     foaf:name ?castilloName .
+}
+ORDER BY ?textoMin
+
+#2. Nombres de los dragones sin jinete
+SELECT DISTINCT ?dragonName
+WHERE {
+  ?d a v:Dragon ;
+     foaf:name ?dragonName .
+  FILTER NOT EXISTS {
+    ?anyRider v:rides ?d .
+  }
+}
+
+#3.Caballeros que montan dragones.
+PREFIX v:    <http://example.org/vocab#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT DISTINCT ?knightName ?dragonName
+WHERE {
+  ?knight a v:Knight ;
+          foaf:name ?knightName ;
+          v:rides ?dragon .
+
+  ?dragon foaf:name ?dragonName .
+}
+
+
+#4. Reyes y reinas que no montan ningun dragon
+PREFIX v:       <http://example.org/vocab#>
+PREFIX foaf:    <http://xmlns.com/foaf/0.1/>
+
+SELECT DISTINCT ?rulerName ?rulerType
+WHERE {
+  {
+    {?r a v:King ;
+         foaf:name ?rulerName .
+     BIND("King" AS ?rulerType)
+    }
+    UNION
+    {?r a v:Queen ;
+         foaf:name ?rulerName .
+     BIND("Queen" AS ?rulerType)
+    }
+  }
+  FILTER NOT EXISTS {
+    ?r v:rides ?anyDragon .
+  }
+}
+ORDER BY ?rulerType ?rulerName
+
+#5. Personajes que se hayan casado mas de una vez
+PREFIX v:    <http://example.org/vocab#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT ?personName (COUNT(DISTINCT ?spouse) AS ?numSpouses)
+WHERE {
+  ?p a v:Character ;
+     foaf:name ?personName ;
+     v:spouse ?spouse .
+}
+GROUP BY ?personName
+HAVING (COUNT(DISTINCT ?spouse) > 1)
+
+# Al hacer la propiedad v:spouse simetrica en el grafo GOT, 
+# no hubo cambios en el resultado de la query, por lo que no 
+# existia ningún caso que pasara de 1 a 2 spouses.
+
+#6. Reyes casados con alguien cuya casa No sea Targaryen
+PREFIX v:       <http://example.org/vocab#>
+PREFIX foaf:    <http://xmlns.com/foaf/0.1/>
+PREFIX got:     <http://example.org/got#>
+PREFIX hotd:    <http://example.org/hotd#>
+PREFIX kot7k:   <http://example.org/kot7k#>
+
+SELECT DISTINCT ?kingName ?spouseName ?spouseHouse
+WHERE {
+  ?king a v:King ;
+        foaf:name ?kingName ;
+        v:spouse ?spouse .
+  ?spouse v:memberOf ?house .
+  FILTER ( # Como cada grafo tiene una IRI distinta para :HouseTargaryen, filtramos cada uno.
+    ?house NOT IN (
+      got:HouseTargaryen,
+      hotd:HouseTargaryen,
+      kot7k:HouseTargaryen
+    )
+  )
+  ?spouse foaf:name ?spouseName .
+  # Para saber de qué subgrafo viene la casa de la esposa,podemos inspeccionar la URI de ?house.
+  BIND(STRAFTER(STR(?house), "#") AS ?spouseHouse)
+}
+ORDER BY ?kingName ?spouseName
+
+#7. Miembros de House Targaryen que no montan dragones
+PREFIX v:       <http://example.org/vocab#>
+PREFIX foaf:    <http://xmlns.com/foaf/0.1/>
+PREFIX got:     <http://example.org/got#>
+PREFIX hotd:    <http://example.org/hotd#>
+PREFIX kot7k:   <http://example.org/kot7k#>
+
+SELECT DISTINCT ?memberName
+WHERE {
+  ?p a v:Character ;
+     foaf:name ?memberName ;
+     v:memberOf ?targHouse .
+  FILTER (
+    ?targHouse IN (
+      got:HouseTargaryen,
+      hotd:HouseTargaryen,
+      kot7k:HouseTargaryen
+    )
+  )
+  FILTER NOT EXISTS {
+    ?p v:rides ?anyDragon .
+  }
+}
+ORDER BY ?memberName
+
+#8.  Nombres de las casas ancestrales de los reyes y reinas
+PREFIX v:    <http://example.org/vocab#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+SELECT DISTINCT 
+  ( LCASE(STR(?castleName)) AS ?casaAncestral )
+WHERE {
+  {
+    ?r a v:King ;
+       v:ancestralHome ?castle .
+  }
+  UNION
+  {
+    ?r a v:Queen ;
+       v:ancestralHome ?castle .
+  }
+  ?castle foaf:name ?castleName .
+}
+ORDER BY ?casaAncestral
+
+# Aqui nueevamente hubieramos obtenido "Dragonstone" 3 veces,
+# Pero Lcase() resuelve el problema.
+
+#9. Cantidad de jinetes por dragon
+PREFIX v:       <http://example.org/vocab#>
+PREFIX foaf:    <http://xmlns.com/foaf/0.1/>
+
+SELECT ?dragonName (COUNT(DISTINCT ?rider) AS ?numRiders)
+WHERE {
+  ?dragon a v:Dragon ;
+          foaf:name ?dragonName .
+  OPTIONAL {
+    ?rider v:rides ?dragon .
+  }
+}
+GROUP BY ?dragonName
+ORDER BY DESC(?numRiders) ?dragonName
+
+
+
+

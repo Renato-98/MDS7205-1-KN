@@ -1,0 +1,95 @@
+Lab_07
+
+#1 
+# Sacamos una proyeccion del grafo
+MATCH (source:Airport)-[r:vuelo]->(target:Airport)
+RETURN gds.graph.project(
+  'Graph_1',
+  target,
+  source
+)
+
+# Corremos el algoritmo apropiado para grado grado (degree centrality):
+CALL gds.degree.stream('Graph_1')
+YIELD nodeId, score
+RETURN
+  gds.util.asNode(nodeId).Name   AS Aeropuerto,
+  score                         AS Grado
+ORDER BY Grado DESC
+LIMIT 1; 
+
+#2
+#Sacamos una proyeccion del grafo
+MATCH (source:Airport{Country:'United States'})-[r:vuelo]->(target:Airport{Country:'United States'})
+RETURN gds.graph.project(
+  'Graph_2',
+  target,
+  source
+)
+
+#Closeness 
+CALL gds.closeness.stream('Graph_2')
+YIELD nodeId, score 
+RETURN gds.util.asNode(nodeId).Name AS name, gds.util.asNode(nodeId).City AS city, score as closeness  
+ORDER BY closeness   DESC
+
+#PageRank	
+CALL gds.pageRank.stream('Graph_2_1')
+YIELD nodeId, score 
+RETURN gds.util.asNode(nodeId).Name AS name, gds.util.asNode(nodeId).City AS city, score as pageRank
+ORDER BY pageRank DESC
+
+#3
+# Proyeccione
+MATCH (source:Airport)-[r:vuelo]-(target:Airport)
+RETURN gds.graph.project(
+  'Graph_3',
+  source,
+  target,
+  {},
+  { undirectedRelationshipTypes: ['*'] }
+);
+
+# Leiden:
+CALL gds.leiden.stream('Graph_P3')
+YIELD nodeId, communityId
+RETURN
+  gds.util.asNode(nodeId).Name     AS Aeropuerto,
+  gds.util.asNode(nodeId).Country  AS País,
+  communityId                     AS Comunidad
+ORDER BY País;
+
+#4
+# Proyeccione igual a la P1 o P3, P3 se fuerza a tener relaciones unidireccionales (osea solo se vuela de origen a destino) por lo que seria 
+# mejor opcion para evitar caminos de ida y vuelta.. pero los outputs parecen ser iguales.
+MATCH (source:Airport {IATA:'JFK'})
+CALL gds.bfs.stream(
+  'Graph_1',
+  { sourceNode: source, maxDepth: 4 }
+)
+YIELD path
+UNWIND nodes(path) AS nodo
+RETURN DISTINCT nodo.Country AS País
+
+#5
+# nuevamente, se puede usar el subragrafo 1
+MATCH (scl:Airport {IATA: 'SCL'})
+CALL gds.nodeSimilarity.filtered.stream(
+  'Graph_1',
+  {
+    sourceNodeFilter: scl,
+    topK: 10                                // Los 10 más similares
+  }
+)
+YIELD node1, node2, similarity
+RETURN
+  gds.util.asNode(node1).IATA    AS IATA1,
+  gds.util.asNode(node1).Name    AS Airport1,
+  gds.util.asNode(node2).IATA    AS IATA2,
+  gds.util.asNode(node2).Name    AS Airport2,
+  similarity                      AS Similitud
+ORDER BY
+  similarity DESC,
+  Airport2 AS
+
+
