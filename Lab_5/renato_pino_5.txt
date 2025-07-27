@@ -1,0 +1,59 @@
+#1
+MATCH (m:Movie)
+RETURN m.title  AS título,
+       m.genre  AS género;
+
+#2
+MATCH (p:Person)-[r:ACTED_IN]->(m:Movie {title: 'Inception'})
+RETURN p.name  AS actor,
+       r.role  AS personaje;
+
+#3
+MATCH (m:Movie)<-[:ACTED_IN]-(:Person)
+WITH m, COUNT(*) AS numActores
+WHERE numActores > 2
+RETURN m.title AS título;
+
+#4 
+MATCH (p:Person)-[:DIRECTED]->(m:Movie)<-[r:ACTED_IN]-(p)
+RETURN m.title    AS película,
+       p.name      AS persona,
+       r.role      AS personaje;
+#5
+MATCH (person:Person)-[:ACTED_IN]->(:Movie)<-[:DIRECTED]-(n:Person {name: 'Christopher Nolan'})
+WHERE NOT EXISTS {
+  MATCH (person)-[:ACTED_IN]->(:Movie)<-[:DIRECTED]-(t:Person {name: 'Quentin Tarantino'})
+}
+RETURN DISTINCT person.name AS nombre;
+
+#6
+MATCH (p:Person)-[:FRIEND_OF]->(f:Person)
+WHERE (f)-[:ACTED_IN|DIRECTED]->()
+WITH p, COUNT(DISTINCT f) AS amigosActivos
+RETURN p.name         AS persona,
+       amigosActivos  AS num_amigos_activos;
+#7
+MATCH (m:Person {name: 'Margot Robbie'})-[:FRIEND_OF*1..]->(amigo:Person)
+WHERE amigo.name <> 'Margot Robbie'
+RETURN DISTINCT amigo.name AS nombre;
+//Al principio los resultados de esta query me confundieron porque me daban muchas mas presonas 
+// que mostraba la vizualizacion del grafo cerrado FRIEND_OF donde estaba 'Morgot Robbie'.
+//Pero revisando el .txt que se usa para crear el grafo efectivamanete puede llegare a todas esas personas
+// con la uqry final que crea bicondicionalidad de FRIEND_OF. 
+
+#8
+MATCH (p:Person)-[:FRIEND_OF]->(f:Person)
+WITH p, COUNT(f) AS numAmigos
+RETURN p.name    AS persona,
+       numAmigos  AS cantidad_amigos
+ORDER BY numAmigos DESC
+LIMIT 3;
+#9
+MATCH (p1:Person)-[:ACTED_IN]->(m:Movie)<-[:ACTED_IN]-(p2:Person)
+WHERE p1.name < p2.name
+WITH p1, p2, COUNT(m) AS peliculasJuntas
+WHERE peliculasJuntas > 1
+RETURN p1.name           AS actor1,
+       p2.name           AS actor2,
+       peliculasJuntas   AS num_películas;
+
